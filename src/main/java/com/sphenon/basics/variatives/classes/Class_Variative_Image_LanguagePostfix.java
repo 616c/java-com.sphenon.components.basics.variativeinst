@@ -1,7 +1,7 @@
 package com.sphenon.basics.variatives.classes;
 
 /****************************************************************************
-  Copyright 2001-2018 Sphenon GmbH
+  Copyright 2001-2024 Sphenon GmbH
 
   Licensed under the Apache License, Version 2.0 (the "License"); you may not
   use this file except in compliance with the License. You may obtain a copy
@@ -53,6 +53,14 @@ public class Class_Variative_Image_LanguagePostfix implements Variative_Image_ {
             String isolang = ((HumanLanguage) vs).getLanguage(context);
             return Class_Image.create(context, this.name + "-" + isolang);
         }
+    }
+
+    public Image getVariant(CallContext context) {
+        return this.getVariant_Image_(context);
+    }
+
+    public Image getVariant(CallContext context, VariantSelectors variant_selectors) {
+        return this.getVariant_Image_(context, variant_selectors);
     }
 }
 

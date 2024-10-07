@@ -1,18 +1,4 @@
 // instantiated with jti.pl from FilterByRegExp
-
-/****************************************************************************
-  Copyright 2001-2018 Sphenon GmbH
-
-  Licensed under the Apache License, Version 2.0 (the "License"); you may not
-  use this file except in compliance with the License. You may obtain a copy
-  of the License at http://www.apache.org/licenses/LICENSE-2.0
-
-  Unless required by applicable law or agreed to in writing, software
-  distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-  WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-  License for the specific language governing permissions and limitations
-  under the License.
-*****************************************************************************/
 // please do not modify this file directly
 package com.sphenon.basics.variatives.tplinst;
 
@@ -24,28 +10,25 @@ import com.sphenon.basics.retriever.*;
 import com.sphenon.basics.context.*;
 import com.sphenon.basics.exception.*;
 import com.sphenon.basics.retriever.*;
+import com.sphenon.basics.retriever.classes.*;
+import com.sphenon.basics.metadata.*;
 
 import java.util.regex.*;
 
-public class FilterByRegExp_Variative_String__ implements FilterByExpression_Variative_String__ {
+public class FilterByRegExp_Variative_String__ extends GenericFilterBase<Variative_String_> implements FilterByExpression_Variative_String__ {
 
+    protected String  value;
     protected String  regexp;
     protected Pattern regexp_pattern;
 
-    protected boolean filter_enabled;
-
-    public boolean getFilterEnabled (CallContext context) {
-        return this.filter_enabled;
-    }
-
-    public void setFilterEnabled (CallContext context, boolean filter_enabled) {
-        this.filter_enabled = filter_enabled;
-    }
+    static protected Type target_type;
 
     public FilterByRegExp_Variative_String__ (CallContext context) {
+        super(context, target_type == null ? (target_type = TypeManager.get(context, Variative_String_.class)) : target_type);
     }
 
     public FilterByRegExp_Variative_String__ (CallContext context, String regexp) throws PatternSyntaxException {
+        this(context);
         this.setRegExp(context, regexp);
     }
 
@@ -61,26 +44,46 @@ public class FilterByRegExp_Variative_String__ implements FilterByExpression_Var
         return this.regexp;
     }
 
-    public void setRegExp (CallContext context, String regexp) throws PatternSyntaxException {
-        this.regexp = regexp;
+    public void setRegExp (CallContext context, String expression_or_value) throws PatternSyntaxException {
         try {
-            this.regexp_pattern = (this.regexp == null ? null : Pattern.compile(this.regexp));
-        } catch (PatternSyntaxException pse) {
-            this.regexp_pattern = null;
-            if (RetrieverPackageInitialiser.getConfiguration(context).get(context, "DEBUG.DisableRegExpMatcher", false) == false) {
-                throw pse;
+            if (expression_or_value != null) {
+                if (expression_or_value.matches("^(?:~{3,4}|≈{1,2}|:).*")) {
+                    throw new PatternSyntaxException("Fuzzy pattern matching not yet supported in InMemory datastore", expression_or_value, 0);
+                    // but there's already: StringUtilities.distance
+                } else if (expression_or_value.startsWith("~")) {
+                    this.regexp = expression_or_value.substring(1);
+                    try {
+                        this.regexp_pattern = (this.regexp == null ? null : Pattern.compile(this.regexp));
+                    } catch (PatternSyntaxException pse) {
+                        this.regexp_pattern = null;
+                        if (RetrieverPackageInitialiser.getConfiguration(context).get(context, "DEBUG.DisableRegExpMatcher", false) == false) {
+                            throw pse;
+                        }
+                    }
+                } else {
+                    this.value = expression_or_value.isEmpty() ? null : expression_or_value.startsWith("=") ? expression_or_value.substring(1) : expression_or_value;
+                }
             }
         } finally {
-            setFilterEnabled(context, this.regexp_pattern == null ? false : true);
+            setFilterEnabled(context, this.regexp_pattern == null && this.value == null ? false : true);
         }
     }
 
     public boolean matches (CallContext context, Variative_String_ object) {
         Variative_String_ instance = object;
-        return (    this.regexp == null
-                 || this.regexp.length() == 0
-                 || this.regexp_pattern == null
-                 || (object != null && regexp_pattern.matcher(instance.getVariant_String_(context) ).matches()));
+        return ( this.regexp != null
+                 ? (    this.regexp.length() == 0
+                     || this.regexp_pattern == null
+                     || (object != null && regexp_pattern.matcher(instance.getVariant_String_(context) ).matches())
+                   ) :
+                 this.value != null
+                 ? (object != null && this.value.equals(instance.getVariant_String_(context) )
+                   ) :
+                 true);
+    }
+
+    static public FilterByRegExp_Variative_String__ newInstance(CallContext context) {
+        return (FilterByRegExp_Variative_String__) Factory_Filter_Variative_String__.construct(context);
     }
 }
 
